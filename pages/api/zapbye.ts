@@ -5,15 +5,15 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
             method,
       } = req
 
-      if(method != "POST") {
+      if (method != "POST") {
             res.statusCode = 405
-            res.json( {error: "Method Not Allowed"})
+            res.json({ error: "Method Not Allowed" })
+      } else {
+            var lemlistBody: string = req.body;
+            console.log(lemlistBody);
+            res.statusCode = 200
+            res.json({ response: "200 OK" })
       }
-
-      var lemlistBody: string = req.body;
-      console.log(lemlistBody);
-      res.statusCode = 200
-      res.json({response:"200 OK"})
 }
 
 interface Lemlist {
