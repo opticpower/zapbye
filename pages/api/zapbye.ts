@@ -79,10 +79,10 @@ async function getLemlistCampaigns(): Promise<JSON> {
 async function getLemlistCampaignNameFromCampaignId(campaignId: string): Promise<string> {
       let campaign = filterCampaignById(cachedCampaignsArray, campaignId);
       if(!campaign) {
-            //we keep track of how long ago we last pulled from lemlist so we don't end up getting rate limited if there's an ID we can't find
+            //we keep track of how long ago we last pulled from Lemlist so we don't end up getting rate limited if there's an ID we can't find
             let now = Date.now();
             if(!lastCampaignCheckedTimestamp || now - lastCampaignCheckedTimestamp > CONSTANTS.LEMLIST_CAMPAIGN_FETCH_COOLDOWN_TIME_IN_MS) {
-                  cachedCampaignsArray = await getLemlistCampaigns() as Array<LemlistCampaign>;
+                  cachedCampaignsArray = await getLemlistCampaigns() as unknown as Array<LemlistCampaign>;
                   campaign = filterCampaignById(cachedCampaignsArray, campaignId);
                   lastCampaignCheckedTimestamp = now;
             }
