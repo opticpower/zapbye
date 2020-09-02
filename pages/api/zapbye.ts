@@ -48,11 +48,11 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
             RecordTypeId: CONSTANTS.SALESFORCE_LEMLISTTASK_ID,
             ActivityDate: new Date(), //DueDate
             Lemlist_Campaign_Name__c: await getLemlistCampaignNameFromCampaignId(lemlistPayload.campaignId),
-            Lemlist_Sender__c: lemlistPayload.leadFirstName + ' ' + lemlistPayload.leadLastName,
+            Lemlist_Sender__c: lemlistPayload.sendUserName,
             Lemlist_Email__c: lemlistPayload.leadEmail,
             Lemlist_Task_Type__c: lemlistPayload.type,
             Lemlist_Sequence_Step_Number__c: lemlistPayload.sequenceStep,
-      },{},function(err, ret) {
+      }, {}, (err, ret) => {
             if (err || !ret.success) {
                   return console.error(err, ret);
             }
