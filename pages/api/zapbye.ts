@@ -23,41 +23,45 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
             method,
       } = req;
 
-      if (method != "POST") {
+      if (method !== "POST") {
             res.status(405).json({ error: "Method Not Allowed" });
             return;
       }
 
-      if(!salesforceConnection || !salesforceConnection.accessToken) {
-            console.log("Attempting to log in!");
+      if(!salesforceConnection?.accessToken) {
+            console.info("Attempting to log in!");
             salesforceConnection = new jsforce.Connection();
-            await salesforceConnection.login(CONSTANTS.SALESFORCE_EMAIL, CONSTANTS.SALESFORCE_PASSWORD + CONSTANTS.SALESFORCE_SECURITY_TOKEN, function(err, res) {
-                  if (err) {
-                        salesforceConnection = null;
-                        res.statusCode = 500;
-                        res.body = err;
-                        return console.error(err);
-                  }
-            });
+            try {
+                  await salesforceConnection.login(CONSTANTS.SALESFORCE_EMAIL, CONSTANTS.SALESFORCE_PASSWORD + CONSTANTS.SALESFORCE_SECURITY_TOKEN);
+                  console.info("Successfully logged in!");
+            } catch (err) {
+                  salesforceConnection = null;
+                  res.status(500).json({ error: err } );
+                  return console.error(err);
+            }
       }
       const lemlistPayload = req.body;
-      await salesforceConnection.sobject(CONSTANTS.SALESFORCE_SOBJECT_TYPE).create({
-            TaskSubtype: CONSTANTS.SALESFORCE_TASK_SUBTYPE,
-            Subject: CONSTANTS.SALESFORCE_TASK_SUBJECT,
-            Status: CONSTANTS.SALESFORCE_STATUS,
-            RecordTypeId: CONSTANTS.SALESFORCE_LEMLISTTASK_ID,
-            ActivityDate: new Date(), //DueDate
-            Lemlist_Campaign_Name__c: await getLemlistCampaignNameFromCampaignId(lemlistPayload.campaignId),
-            Lemlist_Sender__c: lemlistPayload.sendUserName,
-            Lemlist_Email__c: lemlistPayload.leadEmail,
-            Lemlist_Task_Type__c: lemlistPayload.type,
-            Lemlist_Sequence_Step_Number__c: lemlistPayload.sequenceStep,
-      }, {}, (err, ret) => {
-            if (err || !ret.success) {
-                  return console.error(err, ret);
+      try {
+            const sobjectQueryResponse = await salesforceConnection.sobject(CONSTANTS.SALESFORCE_SOBJECT_TYPE).create({
+                  TaskSubtype: CONSTANTS.SALESFORCE_TASK_SUBTYPE,
+                  Subject: CONSTANTS.SALESFORCE_TASK_SUBJECT,
+                  Status: CONSTANTS.SALESFORCE_STATUS,
+                  RecordTypeId: CONSTANTS.SALESFORCE_LEMLISTTASK_ID,
+                  ActivityDate: new Date(), //DueDate
+                  Lemlist_Campaign_Name__c: await getLemlistCampaignNameFromCampaignId(lemlistPayload.campaignId),
+                  Lemlist_Sender__c: lemlistPayload.sendUserName,
+                  Lemlist_Email__c: lemlistPayload.leadEmail,
+                  Lemlist_Task_Type__c: lemlistPayload.type,
+                  Lemlist_Sequence_Step_Number__c: lemlistPayload.sequenceStep,
+            }, {});
+            if(!sobjectQueryResponse.success) {
+                  console.error(sobjectQueryResponse);
+            } else {
+                  console.info('Task created successfully: ', sobjectQueryResponse);
             }
-            console.log('Task created successfully: ', ret);
-      });
+      } catch (err) {
+            return console.error(err);
+      }
       res.status(200).json({ response: "200 OK" });
 }
 
@@ -67,11 +71,11 @@ interface LemlistCampaign {
       archived: boolean
 }
 
-const getLemlistCampaigns = async (): Promise<JSON> => {
+const getLemlistCampaigns = async (): Promise<Array<LemlistCampaign>> => {
       const endpoint = "https://:" + CONSTANTS.LEMLIST_API_KEY + "@api.lemlist.com/api/campaigns";
-      console.log("Attempting to fetch Lemlist Campaigns from API");
+      console.info("Attempting to fetch Lemlist Campaigns from API");
       const response: Response = await fetch(endpoint);
-      return response.json();
+      return await response.json() as Array<LemlistCampaign>;
 }
 
 const getLemlistCampaignNameFromCampaignId = async (campaignId: string): Promise<string> => {
@@ -80,7 +84,7 @@ const getLemlistCampaignNameFromCampaignId = async (campaignId: string): Promise
             //we keep track of how long ago we last pulled from Lemlist so we don't end up getting rate limited if there's an ID we can't find
             let now: number = Date.now();
             if(!lastCampaignCheckedTimestamp || now - lastCampaignCheckedTimestamp > CONSTANTS.LEMLIST_CAMPAIGN_FETCH_COOLDOWN_TIME_IN_MS) {
-                  cachedCampaignsArray = await getLemlistCampaigns() as unknown as Array<LemlistCampaign>;
+                  cachedCampaignsArray = await getLemlistCampaigns();
                   campaign = filterCampaignById(cachedCampaignsArray, campaignId);
                   lastCampaignCheckedTimestamp = now;
             }
@@ -89,9 +93,9 @@ const getLemlistCampaignNameFromCampaignId = async (campaignId: string): Promise
 }
 
 const filterCampaignById = (campaigns: Array<LemlistCampaign>, campaignId: string): string  => {
-      for (let i = 0; i < campaigns.length; i++) {
-            if (campaigns[i]._id === campaignId) {
-                  return campaigns[i].name;
+      for (let campaign of campaigns) {
+            if (campaign._id === campaignId) {
+                  return campaign.name;
             }
       }
       return null;
