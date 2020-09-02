@@ -100,7 +100,7 @@ const getLemlistCampaignNameFromCampaignId = async (campaignId: string): Promise
 };
 
 const filterCampaignById = (campaigns: Array<LemlistCampaign>, campaignId: string): string => {
-  for (let campaign of campaigns) {
+  for (const campaign of campaigns) {
     if (campaign._id === campaignId) {
       return campaign.name;
     }
