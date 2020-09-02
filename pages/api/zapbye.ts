@@ -24,8 +24,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       } = req;
 
       if (method != "POST") {
-            res.statusCode = 405;
-            res.json({ error: "Method Not Allowed" });
+            res.status(405).json({ error: "Method Not Allowed" });
             return;
       }
 
@@ -59,8 +58,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
             }
             console.log('Task created successfully: ', ret);
       });
-      res.statusCode = 200;
-      res.json({ response: "200 OK" });
+      res.status(200).json({ response: "200 OK" });
 }
 
 interface LemlistCampaign {
@@ -69,15 +67,15 @@ interface LemlistCampaign {
       archived: boolean
 }
 
-async function getLemlistCampaigns(): Promise<JSON> {
+const getLemlistCampaigns = async (): Promise<JSON> => {
       const endpoint = "https://:" + CONSTANTS.LEMLIST_API_KEY + "@api.lemlist.com/api/campaigns";
       console.log("Attempting to fetch Lemlist Campaigns from API");
       const response: Response = await fetch(endpoint);
       return response.json();
 }
 
-async function getLemlistCampaignNameFromCampaignId(campaignId: string): Promise<string> {
-      let campaign = filterCampaignById(cachedCampaignsArray, campaignId);
+const getLemlistCampaignNameFromCampaignId = async (campaignId: string): Promise<string> => {
+      let campaign: string = filterCampaignById(cachedCampaignsArray, campaignId);
       if(!campaign) {
             //we keep track of how long ago we last pulled from Lemlist so we don't end up getting rate limited if there's an ID we can't find
             let now: number = Date.now();
@@ -90,7 +88,7 @@ async function getLemlistCampaignNameFromCampaignId(campaignId: string): Promise
       return campaign;
 }
 
-function filterCampaignById(campaigns: Array<LemlistCampaign>, campaignId: string): string {
+const filterCampaignById = (campaigns: Array<LemlistCampaign>, campaignId: string): string  => {
       for (let i = 0; i < campaigns.length; i++) {
             if (campaigns[i]._id === campaignId) {
                   return campaigns[i].name;
