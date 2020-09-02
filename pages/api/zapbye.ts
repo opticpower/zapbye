@@ -15,8 +15,8 @@ const CONSTANTS = {
 };
 
 let salesforceConnection;
-let cachedCampaignsArray;
-let lastCampaignCheckedTimestamp;
+let lastCampaignCheckedTimestamp: number;
+let cachedCampaignsArray: Array<LemlistCampaign> = [];
 
 export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> => {
       const {
@@ -41,7 +41,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
                   }
             });
       }
-      let lemlistPayload = req.body;
+      const lemlistPayload = req.body;
       await salesforceConnection.sobject(CONSTANTS.SALESFORCE_SOBJECT_TYPE).create({
             TaskSubtype: CONSTANTS.SALESFORCE_TASK_SUBTYPE,
             Subject: CONSTANTS.SALESFORCE_TASK_SUBJECT,
@@ -70,7 +70,7 @@ interface LemlistCampaign {
 }
 
 async function getLemlistCampaigns(): Promise<JSON> {
-      let endpoint = "https://:" + CONSTANTS.LEMLIST_API_KEY + "@api.lemlist.com/api/campaigns";
+      const endpoint = "https://:" + CONSTANTS.LEMLIST_API_KEY + "@api.lemlist.com/api/campaigns";
       console.log("Attempting to fetch Lemlist Campaigns from API");
       const response: Response = await fetch(endpoint);
       return response.json();
@@ -80,7 +80,7 @@ async function getLemlistCampaignNameFromCampaignId(campaignId: string): Promise
       let campaign = filterCampaignById(cachedCampaignsArray, campaignId);
       if(!campaign) {
             //we keep track of how long ago we last pulled from Lemlist so we don't end up getting rate limited if there's an ID we can't find
-            let now = Date.now();
+            let now: number = Date.now();
             if(!lastCampaignCheckedTimestamp || now - lastCampaignCheckedTimestamp > CONSTANTS.LEMLIST_CAMPAIGN_FETCH_COOLDOWN_TIME_IN_MS) {
                   cachedCampaignsArray = await getLemlistCampaigns() as unknown as Array<LemlistCampaign>;
                   campaign = filterCampaignById(cachedCampaignsArray, campaignId);
